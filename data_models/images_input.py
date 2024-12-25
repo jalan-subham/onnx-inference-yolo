@@ -48,6 +48,21 @@ class Images(BaseModel):
         ) for path in image_paths]
 
     @staticmethod
+    def read_from_file(filepath: str) -> Image:
+        """Reads an image from a single file and initializes the input data.
+
+        Args:
+            filepath: Path to the image file
+
+        Returns:
+            Image object
+        """
+        return Image(
+            id=os.path.basename(filepath),
+            np_data=cv2.imread(filepath),
+        )
+
+    @staticmethod
     def np_init(data: List[np.ndarray], ids: List[Union[str, UUID]] = None) -> List[Image]:
         """Init class from numpy array.
 

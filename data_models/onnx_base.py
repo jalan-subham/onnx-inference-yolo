@@ -2,7 +2,6 @@ from typing import Tuple, Union
 
 import numpy as np
 import onnxruntime as ort
-import torch
 from loguru import logger
 
 
@@ -25,8 +24,7 @@ class OnnxBase:
 
         if weight_path.__contains__("onnx"):
             logger.info(f"Loading ONNX model from: {weight_path}")
-            providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if torch.cuda.is_available() else [
-                'CPUExecutionProvider']
+            providers =['CPUExecutionProvider']
             self.session = ort.InferenceSession(self.weight_path, providers=providers)
 
             # Model settings

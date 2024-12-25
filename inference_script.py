@@ -1,13 +1,14 @@
 from typing import Dict, Tuple
-
+import time
 import cv2
 from loguru import logger
 import random
+import os
 from data_models.images_input import Images
 import numpy as np
-
 from data_models.onnx_object_detection import OnnxObjectDetection
 from utils.visualization import write_to_disk
+import argparse 
 
 yolo_classnames = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
          'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
@@ -22,15 +23,31 @@ yolo_classnames = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 
 yolo_colors: Dict[str, Tuple[int, int, int]] = {cls_name: [random.randint(0, 255) for _ in range(3)] for k, cls_name in
                                                 enumerate(yolo_classnames)}
 
-yolov7_tiny = "/Users/anwesh.marwade@pon.com/Downloads/yolo/yolov7-tiny-dynamic-batch.onnx"
-input_folder = "/Users/anwesh.marwade@pon.com/Downloads/yolo/images"
-output_folder = "/Users/anwesh.marwade@pon.com/Downloads/test_op"
+yolov7_tiny = "./weights/yolov7-tiny/yolov7-tiny.onnx"
+input_folder = "inputs"
+output_folder = "outputs"
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Object Detection')
+    parser.add_argument('--input', type=str, default=input_folder, help='Path to the input folder or image')
+    parser.add_argument('--output', type=str, default=output_folder, help='Path to the output folder')
+    parser.add_argument('--weights', type=str, default=yolov7_tiny, help='Path to the weights file')
+    parser.add_argument('--time', type=bool, default=False, help='Print time taken for inference')
+    
+    args = parser.parse_args()
+    modelPath = args.weights
+    input_folder = args.input
+    output_folder = args.output
+    toTime = args.time
 
-    yolov7 = OnnxObjectDetection(weight_path=yolov7_tiny, classnames=yolo_classnames)
+    startime = time.time()
 
-    images = Images(images=Images.read_from_folder(path=input_folder, ext="jpg"))
+    yolov7 = OnnxObjectDetection(weight_path=modelPath, classnames=yolo_classnames)
+
+    if os.path.isfile(input_folder):
+        images = Images(images=[Images.read_from_file(input_folder)])
+    else:
+        images = Images(images=Images.read_from_folder(path=input_folder, ext="jpg"))
 
     for i, batch in enumerate(images.create_batch(batch_size=4)):
         logger.info(f"Processing batch: {i} containing {len(batch)} image(s)...")
@@ -41,3 +58,5 @@ if __name__ == '__main__':
         annotations = batch.annotate_objects(input_size=yolov7.input_size, letterboxed_image=True, class_colors=yolo_colors)
         write_to_disk(path=output_folder, images=annotations,
                              names=batch.get_image_ids())
+    if toTime:
+        logger.info(f"Total time: {time.time() - startime:.2f} seconds.")
